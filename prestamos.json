@@ -1,0 +1,14 @@
+[
+    {
+        "id": 1,
+        "nombre": "Dilmer Yesid Romero",
+        "monto": 600000.0,
+        "estado": "pendiente"
+    },
+    {
+        "id": 2,
+        "nombre": "carmen doris",
+        "monto": 200000.0,
+        "estado": "pendiente"
+    }
+]

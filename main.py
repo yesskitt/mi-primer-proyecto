@@ -19,6 +19,7 @@ def registrar_prestamo():
             "estado": "pendiente"
         }
         prestamos.append(prestamo)
+        guardar_datos()
         print("prestamo registrado correctamente")
         
     except ValueError as e:
@@ -38,21 +39,19 @@ def mostrar_prestamos():
         )  
 
 def marcar_prestamos():
-     try:
-          n = int(input("Ingresa el id a marcar como pagado: "))
+
+          id_buscar = input("Ingresa el id a marcar como pagado: ")
           encontrado = False
           
           for p in prestamos:
-               if p['id'] == n:
+               if p['id'] == id_buscar:
                     p['estado'] = "pagado"
+                    guardar_datos()
                     encontrado = True
                     print("El prestamo ha sido pagado")
                     break
           if not encontrado: 
-               print("No se encontro un prestamo con ese ID")
-
-     except ValueError:
-          print("debes ingresar un numero valido")   
+               print("No se encontro un prestamo con ese ID")  
   
 
 def guardar_datos():
@@ -74,17 +73,15 @@ def cargar_datos():
 def main():
     cargar_datos()
     while True:
-         print("-----------menu principal------------")
+         print("\n-----------menu principal------------")
          print("\n1- Registrar prestamo")
          print("2- Ver prestamos")
          print("3- Marcar prestamos como pagados")
-         print("4- Guardar datos")
-         print("5- Cargar datos")
-         print("6- salir ")
+         print("4- salir ")
          
          opcion = input(f"\nIngresa una de las opciones: ")
          
-         if opcion == "6":
+         if opcion == "4":
              guardar_datos()
              print("Saliste del menu")
              break
@@ -94,12 +91,6 @@ def main():
               mostrar_prestamos()
          elif opcion == "3":
               marcar_prestamos()
-         elif opcion == "4":
-              guardar_datos()
-              print("Datos guardados correctamente")
-         elif opcion == "5":
-              cargar_datos()
-              print("Datos cargados correctamente")
          else:
               print("Opcion no valida. intentalo nuevamente")
 
