@@ -1,12 +1,13 @@
 ## sistema de gestion de prestamos
 import uuid
 import json
+
 prestamos = []
 
 #---------Funciones------------
 def registrar_prestamo():
     try:
-        nombre = input("Ingresa tu nombre completo: ")
+        nombre = input("Ingresa el nombre completo del deudor: ")
         monto = float(input("Ingresa el monto del prestamo: "))
 
         if monto <= 0:
@@ -20,7 +21,7 @@ def registrar_prestamo():
         }
         prestamos.append(prestamo)
         guardar_datos()
-        print("prestamo registrado correctamente")
+        print(f"prestamo registrado con ID: {prestamo['id']}")
         
     except ValueError as e:
         print("Error",e)
@@ -32,7 +33,7 @@ def mostrar_prestamos():
     
     for prestamo in prestamos:
         print(
-            f"ID:{prestamo['id']} |"
+            f"ID:{str(prestamo['id'])} | "
             f"Nombre: {prestamo['nombre']} |"
             f"Monto: {prestamo['monto']} |"
             f"Estado: {prestamo['estado']}"
@@ -40,11 +41,11 @@ def mostrar_prestamos():
 
 def marcar_prestamos():
 
-          id_buscar = input("Ingresa el id a marcar como pagado: ")
+          id_buscar = input("Ingresa el id del prestamo: ")
           encontrado = False
           
           for p in prestamos:
-               if p['id'] == id_buscar:
+               if str(p['id']) == (id_buscar):
                     p['estado'] = "pagado"
                     guardar_datos()
                     encontrado = True
@@ -67,6 +68,21 @@ def cargar_datos():
        except FileNotFoundError:
             prestamos = []
 
+def consultar_id():
+     nombre = input("ingresa el nombre de la persona para consultar ID: ").strip().lower()
+     resultados = []
+     
+     for p in prestamos: 
+          if p['nombre'].strip().lower() == nombre:
+               resultados.append(p)    
+
+     if not resultados:
+          print("No se encontro encontro ese nombre")
+     else:
+          for r in resultados:
+               print("ID:",r['id'], "Estado",r['estado'])
+
+
 
 
 #----------Programa principal--------------
@@ -77,11 +93,12 @@ def main():
          print("\n1- Registrar prestamo")
          print("2- Ver prestamos")
          print("3- Marcar prestamos como pagados")
-         print("4- salir ")
+         print("4- Consultar ID ")
+         print("5- salir")
          
          opcion = input(f"\nIngresa una de las opciones: ")
          
-         if opcion == "4":
+         if opcion == "5":
              guardar_datos()
              print("Saliste del menu")
              break
@@ -91,6 +108,8 @@ def main():
               mostrar_prestamos()
          elif opcion == "3":
               marcar_prestamos()
+         elif opcion == "4":
+              consultar_id()
          else:
               print("Opcion no valida. intentalo nuevamente")
 
@@ -98,7 +117,7 @@ if __name__ == "__main__":
      main()
 
 
-
+### tareas pendientes: agrgar una funcion para cosultar id y arreglarel error del id de 8 caracteres no error pero puede haber 
 
 
 

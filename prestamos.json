@@ -1,14 +1,8 @@
 [
     {
-        "id": 1,
-        "nombre": "Dilmer Yesid Romero",
-        "monto": 600000.0,
-        "estado": "pendiente"
-    },
-    {
-        "id": 2,
-        "nombre": "carmen doris",
-        "monto": 200000.0,
-        "estado": "pendiente"
+        "id": "7514b7eb-fba5-4c0c-86c6-9217595df663",
+        "nombre": "yesid romero ",
+        "monto": 400000.0,
+        "estado": "pagado"
     }
 ]
