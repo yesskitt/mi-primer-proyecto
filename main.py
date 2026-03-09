@@ -1,32 +1,43 @@
 ## sistema de gestion de prestamos
-import uuid
 import json
 
 prestamos = []
 
 #---------Funciones------------
 def registrar_prestamo():
-    try:
-        nombre = input("Ingresa el nombre completo del deudor: ").strip()
-        monto = round(float(input("Ingresa el monto del prestamo: ")),2)
+    try: 
+         datos_deudor = pedir_datos('deudor')
+         if any(p['deudor']['cc'] == datos_deudor['cc'] and p['estado'] == "pendiente" for p in prestamos):
+              print("Lo siento, ya existe un prestamo pendiente con ese numero de cedula")
+              return
+         
+         opcion_fiador = input("Desea ingresar un fiador (Si / No):").strip().lower()
+         datos_fiador = None
+         if opcion_fiador == "si":
+              datos_fiador = pedir_datos('fiador')
 
-        if monto <= 0:
-            raise ValueError("el monto debe ser mayor a 0")
-        
-        prestamo = { 
-            "id": str(uuid.uuid4()),
-            "nombre": nombre,
-            "monto": monto,
-            "saldo_restante" : monto,
-            "estado": "pendiente"
-        }
-        prestamos.append(prestamo)
-        guardar_datos()
-        print(f"prestamo registrado con ID: {prestamo['id']}  |  Monto: ${prestamo['monto']:.2f}")
-        
+         monto = round(float(input("Ingresa el monto del prestamo: ")),2)
+
+         if monto <= 0:
+              raise ValueError("No puedes prestar $ 0.")
+         
+         prestamo = {
+              "deudor": datos_deudor,
+              "fiador": datos_fiador,
+              "saldo_inicial": monto,
+              "saldo_restante": monto,
+              "estado": "pendiente"
+         }
+         prestamos.append(prestamo)
+         guardar_datos()
+
+         print(f"Se registró el préstamo exitosamente para {datos_deudor['nombre']}")
+         
     except ValueError as e:
-        print("Error",e)
+         print("Error",e)
 
+                 
+         
 def ver_prestamos_estado(prestamos, estado):
      filtrados = [p for p in prestamos if p['estado'].lower() == estado.lower()]
 
@@ -37,43 +48,47 @@ def ver_prestamos_estado(prestamos, estado):
           print(f"        prestamos {estado}")
           print("-" * 40)
           for p in filtrados:
-               print(f"ID: {p['id']} | Deudor: {p['nombre']} | monto: ${p['monto']:.2f}")
+               print(f"CC: {p['deudor']['cc']} | Deudor: {p['deudor']['nombre']} | monto: ${p['saldo_inicial']:.2f}")
           print("-" * 40)
     
      
 def marcar_prestamos():
      try: 
-          id_buscar = input("Ingresa el ID del deudor que abona dinero: ").strip().lower()
+          cc_buscar = input("Ingresa la CC del deudor que abona dinero: ").strip()
           abono = round(float(input("Ingresa el monto del abono: ")),2)
 
           if abono <= 0:
-               print("No puedes abonar 0 pesos.")
+               raise ValueError("Lo siento, no puedes abonar $ 0.")
+          
+          
+          prestamo_encontrado = None
+
+          # Buscar solo el prestamo pendiente
+          for p in prestamos:
+               if p['deudor']['cc'] == cc_buscar and p['estado']=="pendiente":
+                    prestamo_encontrado = p
+                    break
+          
+          if prestamo_encontrado is None:
+               print("No hay ningun prestamo pendiente con esa cedula")
                return
           
-          for p in prestamos:
-               if p['id'].lower() == id_buscar:
-
-                    if p['estado'] == 'pagado':
-                         print("No puedes abonar a un prestamo pagado.")
-                         return
-                    if abono > p['saldo_restante']:
-                         print("No puedes abonar mas dinero del saldo actual")
-                         return
-                    
-                    p['saldo_restante'] = round(p['saldo_restante'] - abono,2)
-                    if p['saldo_restante'] <= 0:
-                         p['saldo_restante'] = 0
-                         p['estado'] = 'pagado'
-                    
-                    guardar_datos()
-                    print("El abono se realizo correctamente")
-                    return
-
-          print("No se encontro prestamo con ese ID.")
+          if abono > prestamo_encontrado['saldo_restante']:
+               print("Lo siento, no puedes abonar mas dinero del saldo actual.")
+               return
           
-     except ValueError:
-          print("Ingrresa un monto valido")
-                    
+          prestamo_encontrado['saldo_restante'] = round(prestamo_encontrado['saldo_restante'] - abono ,2)
+
+          if prestamo_encontrado['saldo_restante'] <= 0:
+               prestamo_encontrado['saldo_restante'] = 0
+               prestamo_encontrado['estado'] = "pagado"
+
+          guardar_datos()
+          print("El abono se realizo correctamente")
+
+     except ValueError as e :
+          print("Error:",e)
+          
 
 def guardar_datos():
      with open("prestamos.json", "w", encoding= "utf-8") as archivo:
@@ -89,36 +104,59 @@ def cargar_datos():
             prestamos = []
 
 def id_consultar():
-     nombre = input("ingresa el nombre del deudor para consultar ID:").strip().lower()
+     nombre = input("Ingresa el nombre del deudor para consultar su CC:").strip().lower()
      resultados = []
      
      for p in prestamos: 
-          if nombre in p['nombre'].strip().lower():
+          if nombre in p['deudor']['nombre'].strip().lower():
                resultados.append(p)    
 
      if not resultados:
-          print("No se encontro ese nombre")
+          print("Lo siento, no se encontro ese nombre")
      else:
           print("\nResultados encontrados:\n")
           for i,r in enumerate(resultados, start=1):
                print(
-                    f"{i}.Nombre: {r['nombre']} | "
-                    f"ID: {r['id']} "   
+                    f"{i}.Nombre: {r['deudor'] ['nombre']} | "
+                    f"CC: {r['deudor']['cc']} "   
                )
 
 def saldo_consultar():
-     id_buscar = input("Ingresa el id del deudor para consultar su saldo: ").strip().lower()
+     cc_buscar = input("Ingresa la CC del deudor para consultar su saldo: ").strip()
 
      for i in prestamos:
-          if i['id'].lower() == id_buscar:
+          if i['deudor']['cc'] == cc_buscar:
                print(
-                    f"Deudor: {i['nombre']}  | "
-                    f"Saldo inicial: ${i['monto']:.2f}  | "
-                    f"Saldo restante: ${i['saldo_restante']:.2f}"
+                    f"Deudor: {i['deudor']['nombre']}  | "
+                    f"Saldo inicial: ${i['saldo_inicial']:.2f}  | "
+                    f"Saldo restante: ${i['saldo_restante']:.2f}  | "
+                    f"Estado: {i['estado']}"
                )
                return
 
-     print("No se encontro ese id.")
+     print("No se encontro ese numero de cedula.")
+
+def pedir_datos(tipo):
+     nombre= input(f"Ingresa el nombre del {tipo}: ").strip()
+     cc = input(f"ingresa el numero de cedula del {tipo}: ").strip()
+     cel = input(f"Ingresa numero de telefono del {tipo}: ").strip()
+     direccion = input(f"Ingresa la direccion del {tipo}: ").strip()
+
+     datos = {
+          "nombre": nombre,
+          "cc": cc,
+          "telefono":cel,
+          "direccion":direccion
+     }
+     if any(valor == "" for valor in datos.values()):
+          raise ValueError("hay datos vacios,por favor completar")
+     
+     if not cc.isdigit():
+          raise ValueError("lo siento, la cedula debe ser numerica.")
+     if not cel.isdigit():
+          raise ValueError("lo siento, el telefono solo debe ser numerico")
+     
+     return datos
 
      
 #----------Programa principal--------------
@@ -141,13 +179,13 @@ def main():
               registrar_prestamo()
          elif opcion == "2":
               while True:
-                   print("\n1- Consultar ID.")
+                   print("\n1- Consultar CC.")
                    print("2- Ver prestamos pagados.")
                    print("3- Ver prestamos pendientes.")
-                   print("4- Consultar saldo / estado.")
+                   print("4- Consultar saldo.")
                    print("5- Volver al menu principal.")
 
-                   sub_opcion = input("\nIngresa la opcion: ").strip().lower()
+                   sub_opcion = input("\nIngresa la opcion: ").strip()
                    if sub_opcion == "1":
                         id_consultar()
                    elif sub_opcion == "2":
@@ -170,13 +208,13 @@ def main():
 if __name__ == "__main__":
      main()
 
-# crear otra funcion para la opcion 4
 
 
 
+# permitir un nuevo prestamo sin repetir datos: si la cedula  no existe pide todos los datos, si existe  y el saldo esta pagado, pedir solo el monto
+#si existe y el saldo es mayor a 0 bloquear
+
+#mensajes de prestamos cancelados: cuando llegue a 0 mostrar prestamo cancelado y dejar listo para pedir otro
 
 
-
-
-
-  
+         
