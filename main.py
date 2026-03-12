@@ -6,20 +6,31 @@ prestamos = []
 #---------Funciones------------
 def registrar_prestamo():
     try: 
-         datos_deudor = pedir_datos('deudor')
-         if any(p['deudor']['cc'] == datos_deudor['cc'] and p['estado'] == "pendiente" for p in prestamos):
-              print("Lo siento, ya existe un prestamo pendiente con ese numero de cedula")
-              return
-         
-         opcion_fiador = input("Desea ingresar un fiador (Si / No):").strip().lower()
+         cedula_buscar = input("Por favor, ingresa el numero de cedula del deudor:").strip()
+         encontrado = None
+
+         for c in prestamos:
+              if cedula_buscar == c['deudor']['cc'] and c['estado']== "pendiente":
+               print("Lo siento, ya existe un prestamo activo con este numero de cedula. ")
+               return
+
+              elif cedula_buscar == c['deudor']['cc'] and c['estado'] == "pagado":
+               encontrado = c
+               datos_deudor = c['deudor']
+               break
+          
+         if not encontrado:
+                    datos_deudor = pedir_datos('deudor')
+               
+         opcion_fiador = input("Deseas ingresar un fiador (Si / No):").strip().lower()
          datos_fiador = None
+
          if opcion_fiador == "si":
-              datos_fiador = pedir_datos('fiador')
+             datos_fiador = pedir_datos("fiador")
 
          monto = round(float(input("Ingresa el monto del prestamo: ")),2)
-
          if monto <= 0:
-              raise ValueError("No puedes prestar $ 0.")
+              raise ValueError("No puedes prestar $0.")
          
          prestamo = {
               "deudor": datos_deudor,
@@ -36,8 +47,7 @@ def registrar_prestamo():
     except ValueError as e:
          print("Error",e)
 
-                 
-         
+
 def ver_prestamos_estado(prestamos, estado):
      filtrados = [p for p in prestamos if p['estado'].lower() == estado.lower()]
 
@@ -82,9 +92,12 @@ def marcar_prestamos():
           if prestamo_encontrado['saldo_restante'] <= 0:
                prestamo_encontrado['saldo_restante'] = 0
                prestamo_encontrado['estado'] = "pagado"
+               print(f"El prestamo de {prestamo_encontrado['deudor']['nombre']} ha sido pagado. Es apto para solicitar un nuevo prestamo.")
+          else:
+               print(f"El abono se realizo correctamente. saldo restante: {prestamo_encontrado['saldo_restante']}")
 
           guardar_datos()
-          print("El abono se realizo correctamente")
+        
 
      except ValueError as e :
           print("Error:",e)
@@ -211,10 +224,11 @@ if __name__ == "__main__":
 
 
 
-# permitir un nuevo prestamo sin repetir datos: si la cedula  no existe pide todos los datos, si existe  y el saldo esta pagado, pedir solo el monto
-#si existe y el saldo es mayor a 0 bloquear
+  
+         
 
-#mensajes de prestamos cancelados: cuando llegue a 0 mostrar prestamo cancelado y dejar listo para pedir otro
+    
+     
 
 
          
