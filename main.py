@@ -3,7 +3,7 @@ import json
 prestamos = []
 
 #---------Funciones------------
-def registrar_prestamo(prestamos): # se implemento lo de la nueva funcion buscar prestamo averiguar como funciona todo
+def registrar_prestamo(prestamos): 
     try: 
         cedula_buscar = input("Por favor, ingresa el numero de cedula del deudor:").strip()
 
@@ -63,7 +63,7 @@ def mostrar_prestamos_estado(prestamos, estado):
     filtrados = obtener_prestamos_estado(prestamos, estado)
 
     if not filtrados:
-        print(f"\nNo hay préstamos {estado}")
+        print(f"\nNo hay préstamos en estado: {estado}")
         return
     
     titulo = estado.capitalize()
@@ -72,13 +72,13 @@ def mostrar_prestamos_estado(prestamos, estado):
     print("-" * 50)
 
     for p in filtrados:
-         print(formatear_prestamo(p))
+        print(formatear_prestamo(p))
 
     print("-" * 50)
     
-     
+     ###################333
 def marcar_prestamos(prestamos):
-        cc_buscar = input("Ingresa la Cedula del deudor que abona dinero: ").strip()
+        cc_buscar = input("Ingresa la cedula del deudor que va a abonar: ").strip()
 
         #  VALIDAR ABONo
         while True:
@@ -93,12 +93,16 @@ def marcar_prestamos(prestamos):
                   
         try:
           prestamo = abonar_prestamo(prestamos, cc_buscar, abono)
-          if prestamo['estado']== "pagado":
+          if not prestamo:
+               print("No se encontro el prestamo.")
+          
+          elif prestamo.get('estado', '')== "pagado":
                print(f"El prestamo de {prestamo['deudor']['nombre']} ha sido pagado completamente.")
           else:
                print(f"Abono realizado exitosamente. Saldo restante: ${prestamo['saldo_restante']:.2f}")
 
-          guardar_datos(prestamos)
+          if prestamo :
+               guardar_datos(prestamos)
 
         except ValueError as e:
              print(f"Error: {e}")
@@ -235,7 +239,7 @@ def buscar_por_nombre(prestamos, nombre):
      return resultado
 
 def obtener_prestamos_estado(prestamos,estado):
-     return [p for p in prestamos if p['estado'].lower()== estado.lower()]
+     return [p for p in prestamos if p.get('estado', '').lower()== estado.lower()] # get busca el estado y si no hay lo pasa vacio asi no se rompe el programa
 
 def formatear_prestamo(p):
      fiador = "No tiene"
