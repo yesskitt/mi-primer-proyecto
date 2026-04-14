@@ -5,10 +5,11 @@ prestamos = []
 #---------Funciones------------
 def registrar_prestamo(prestamos): 
     try: 
-        cedula_buscar = input("Por favor, ingresa el numero de cedula del deudor:").strip()
+        cedula_buscar,datos_fiador,monto,porcentaje = pedir_datos_prestamo()
 
         prestamo_activo = buscar_prestamo_cc(prestamos, cedula_buscar,"pendiente")
         prestamo_existente = buscar_prestamo_cc(prestamos,cedula_buscar)
+      
         if prestamo_activo:
              print("Error: ya existe un prestamo activo con esta cedula.")
              return
@@ -16,35 +17,8 @@ def registrar_prestamo(prestamos):
              datos_deudor = prestamo_existente['deudor']   
         else :
              datos_deudor = pedir_datos('deudor')
-        
-        opcion_fiador = input("Deseas ingresar un fiador (Si / No):").strip().lower()
-        datos_fiador = None
 
-        if opcion_fiador in ["si", "sí", "s"]:
-            datos_fiador = pedir_datos("fiador")
-
-        while True:
-             try:
-                 monto = round(float(input("Ingresa el monto del prestamo: ")), 2)
-                 if monto > 0:
-                      break
-                 else: 
-                      print("Error: el monto debe ser mayor a $0")
-
-             except ValueError:
-                  print("Error: ingresa un numero valido.")
-
-        while True:
-            try:
-                porcentaje = int(input("ingresa el porcentaje de interes (1% - 50%): ").strip())
-                if 1 <= porcentaje <= 50:
-                    break
-                else: 
-                    print("error: el porcentaje debe estar entre 1 - 50.")
-            except ValueError:
-                 print("error: ingresa un numero valido")
-
-        prestamos,prestamo = crear_prestamo(
+        prestamo = crear_prestamo_logica(
             prestamos,
             datos_deudor,
             datos_fiador,
@@ -76,7 +50,7 @@ def mostrar_prestamos_estado(prestamos, estado):
 
     print("-" * 50)
     
-     ###################333
+
 def marcar_prestamos(prestamos):
         cc_buscar = input("Ingresa la cedula del deudor que va a abonar: ").strip()
 
@@ -118,6 +92,9 @@ def cargar_datos():
 
        except FileNotFoundError:
             return []
+       except json.JSONDecodeError:
+            print("Error: el archivo de datos esta dañado. No se cargaran los datos")
+            return None
                  
 def id_consultar(prestamos):
      nombre = input("Ingresa el nombre del deudor para consultar su numero de cedula:").strip().lower()
@@ -200,7 +177,7 @@ def crear_prestamo(prestamos, datos_deudor, datos_fiador, monto, porcentaje):
     }
 
     prestamos.append(prestamo)
-    return prestamos,prestamo # entender por que se pone las dos valores y en registrar se llama asi tambien
+    return prestamo 
 
 def abonar_prestamo(prestamos, cc, abono):
      prestamo = buscar_prestamo_cc(prestamos, cc, "pendiente") # esta modificado estudiar como funciona
@@ -209,7 +186,7 @@ def abonar_prestamo(prestamos, cc, abono):
           raise ValueError("No se encontró un préstamo pendiente para esa cédula.")
      
      if abono > prestamo['saldo_restante']:
-          raise ValueError("Lo siento, no puedes abonar mas del saldo actual.")
+          raise ValueError("Error, no puedes abonar mas del saldo actual.")
      
      #actualizar resultados
      prestamo['abonado'] += abono
@@ -231,20 +208,24 @@ def obtener_saldo(prestamos,cc):
      return prestamo
 
 def buscar_por_nombre(prestamos, nombre):
-     resultado = [b for b in prestamos if nombre in b['deudor']['nombre'].strip().lower()]
+     nombre_buscar = nombre.strip().lower()
+     if not nombre_buscar:
+          raise ValueError("Debe ingresar un nombre valido.")
+
+     resultado = [b for b in prestamos if nombre_buscar in b.get('deudor',{}).get('nombre',"").strip().lower()]
 
      if not resultado:
-          raise ValueError("Lo siento, no se encontro cedula con ese nombre.")
+          raise ValueError("Error, no se encontraron prestamos con ese nombre.")
 
      return resultado
 
 def obtener_prestamos_estado(prestamos,estado):
-     return [p for p in prestamos if p.get('estado', '').lower()== estado.lower()] # get busca el estado y si no hay lo pasa vacio asi no se rompe el programa
+     return [p for p in prestamos if p.get('estado', '').lower()== estado.lower()] 
 
 def formatear_prestamo(p):
      fiador = "No tiene"
-     if isinstance(p.get('fiador'), dict):
-          fiador = p['fiador'].get('nombre', "No tiene") # nuevo que hace esto?
+     if isinstance(p.get('fiador'), dict): 
+          fiador = p['fiador'].get('nombre', "No tiene") 
 
      return f"""Deudor: {p['deudor']['nombre']}
 CC: {p['deudor']['cc']}
@@ -257,18 +238,67 @@ Saldo restante: ${p['saldo_restante']:.2f}
 Estado: {p['estado']}
 ------------------------------"""
 
-def buscar_prestamo_cc(prestamos, cc, estado= None): # nuevo ver como funciona
+def buscar_prestamo_cc(prestamos, cc, estado= None): 
      for p in prestamos:
           if p['deudor']['cc']== cc:
                if estado and p['estado'] != estado:
                     continue
                return p
      return None
+
+def crear_prestamo_logica(prestamos,datos_deudor,datos_fiador,monto,porcentaje):
+     prestamo = crear_prestamo(
+          prestamos,
+          datos_deudor,
+          datos_fiador,
+          monto,
+          porcentaje
+
+     )
+
+     return prestamo
+
+def pedir_datos_prestamo():
+     cedula_buscar = input("Por favor, ingresa el numero de cedula del deudor: ").strip()
+
+     opcion_fiador = input("Deseas ingresar un fiador (Si / No): ").strip().lower()
+
+     datos_fiador = None
+     if opcion_fiador in ["si", "sí", "s"]:
+          datos_fiador = pedir_datos("fiador")
+
+     while True:
+          try:
+               monto =round(float(input("ingresa el monto del prestamo:")),2)
+               if monto > 0 :
+                    break
+               else: 
+                    print("Error: El monto debe ser mayor a $0")
+          except ValueError:
+               print("Error: ingresa un numero valido.")
      
+     while True:
+          try:
+               porcentaje = int(input("Ingresa el porcentaje de intere (1% - 50%):").strip())
+               if 1 <= porcentaje <= 50:
+                    break
+               else:
+                    print("Error: el porcentaje debe estar entre 1 - 50.")
+
+          except ValueError:
+               print("Error: ingresa un numero valido")
+
+     return cedula_buscar,datos_fiador,monto,porcentaje
+
+          
   
 #----------Programa principal--------------
 def main():
     prestamos = cargar_datos()
+    if prestamos is None:
+         print("Corrige el archivo antes de continuar.")
+         return
+    
     while True:
          print("\n-----------menu principal------------")
          print("\n1- Registrar prestamo")
@@ -315,9 +345,7 @@ def main():
 if __name__ == "__main__":
      main()
 
-## cambiar todas las llamadas a las funciones por que sin global prestamos ya no funciona igual
 
-# por que sin global prestamos toca cambiar como se llaman a las funciones y colocar prestamo como parametro
 
 
 
