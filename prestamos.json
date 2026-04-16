@@ -1,18 +1,1 @@
-[
-    {
-        "deudor": {
-            "nombre": "yesid romero",
-            "cc": "1004696169",
-            "telefono": "3217974518",
-            "direccion": "calle 11 # 17-27 san rafael"
-        },
-        "fiador": null,
-        "monto": 32000.0,
-        "porcentaje": 10,
-        "interes": 3200.0,
-        "total_pagar": 35200.0,
-        "saldo_restante": 35200.0,
-        "abonado": 0,
-        "estado": "pendiente"
-    }
-]
+[]

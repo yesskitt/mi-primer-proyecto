@@ -8,15 +8,13 @@ def registrar_prestamo(prestamos):
         cedula_buscar,datos_fiador,monto,porcentaje = pedir_datos_prestamo()
 
         prestamo_activo = buscar_prestamo_cc(prestamos, cedula_buscar,"pendiente")
-        prestamo_existente = buscar_prestamo_cc(prestamos,cedula_buscar)
       
         if prestamo_activo:
-             print("Error: ya existe un prestamo activo con esta cedula.")
-             return
-        elif prestamo_existente:
-             datos_deudor = prestamo_existente['deudor']   
-        else :
-             datos_deudor = pedir_datos('deudor')
+             raise ValueError("Ya existe un prestamo activo con esa cedula.")
+             
+             
+        datos_deudor = obtener_o_crear_deudor(prestamos,cedula_buscar)
+             
 
         prestamo = crear_prestamo_logica(
             prestamos,
@@ -61,22 +59,18 @@ def marcar_prestamos(prestamos):
                   if abono > 0:
                        break
                   else:
-                       print("Error: el abono debe ser mayor a $0. Intentalo nuevamente")
-             except ValueError:
-                  print("Error: ingresa un numero valido.")
+                       raise ValueError("El abono debe ser mayor a $0.")
+             except ValueError as e:
+                  print(f"Error: {e}")
                   
         try:
           prestamo = abonar_prestamo(prestamos, cc_buscar, abono)
-          if not prestamo:
-               print("No se encontro el prestamo.")
-          
-          elif prestamo.get('estado', '')== "pagado":
+          if prestamo.get('estado', '')== "pagado":
                print(f"El prestamo de {prestamo['deudor']['nombre']} ha sido pagado completamente.")
           else:
                print(f"Abono realizado exitosamente. Saldo restante: ${prestamo['saldo_restante']:.2f}")
 
-          if prestamo :
-               guardar_datos(prestamos)
+          guardar_datos(prestamos)
 
         except ValueError as e:
              print(f"Error: {e}")
@@ -84,7 +78,7 @@ def marcar_prestamos(prestamos):
 def guardar_datos(prestamos):
      with open("prestamos.json", "w", encoding= "utf-8") as archivo:
           json.dump(prestamos,archivo,indent=4)
-    
+
 def cargar_datos():   
        try:
             with open("prestamos.json", "r", encoding="utf-8") as archivo:
@@ -93,9 +87,11 @@ def cargar_datos():
        except FileNotFoundError:
             return []
        except json.JSONDecodeError:
-            print("Error: el archivo de datos esta dañado. No se cargaran los datos")
-            return None
-                 
+            raise ValueError("Error: el archivo de datos esta dañado. No se cargaran los datos")
+       
+
+
+
 def id_consultar(prestamos):
      nombre = input("Ingresa el nombre del deudor para consultar su numero de cedula:").strip().lower()
 
@@ -130,26 +126,41 @@ Estado: {prestamo['estado']}
          print(e)
 
 def pedir_datos(tipo):
-     nombre= input(f"Ingresa el nombre del {tipo}: ").strip()
-     cc = input(f"ingresa el numero de cedula del {tipo}: ").strip()
-     cel = input(f"Ingresa numero de telefono del {tipo}: ").strip()
-     direccion = input(f"Ingresa la direccion del {tipo}: ").strip()
 
-     datos = {
-          "nombre": nombre,
-          "cc": cc,
-          "telefono":cel,
-          "direccion":direccion
-     }
-     if any(valor == "" for valor in datos.values()):
-          raise ValueError("Hay datos vacios,por favor completar.")
-     
-     if not cc.isdigit():
-          raise ValueError("lo siento, la cedula debe ser numerica.")
-     if not cel.isdigit():
-          raise ValueError("lo siento, el telefono solo debe ser numerico")
-     
-     return datos
+    while True:
+        nombre = input(f"Ingresa el nombre del {tipo}: ").strip()
+        if nombre == "":
+            print("Error: el nombre no puede estar vacío.")
+        else:
+            break
+
+    while True:
+        cc = input(f"Comfirma el número de cédula del {tipo}: ").strip()
+        if not cc.isdigit():
+            print("Error: la cédula debe ser numérica.")
+        else:
+            break
+
+    while True:
+        cel = input(f"Ingresa número de teléfono del {tipo}: ").strip()
+        if not cel.isdigit():
+            print("Error: el teléfono debe ser numérico.")
+        else:
+            break
+
+    while True:
+        direccion = input(f"Ingresa la dirección del {tipo}: ").strip()
+        if direccion == "":
+            print("Error: la dirección no puede estar vacía.")
+        else:
+            break
+
+    return {
+        "nombre": nombre,
+        "cc": cc,
+        "telefono": cel,
+        "direccion": direccion
+    }
 
 def calcular_interes(monto,porcentaje):
      interes = monto * (porcentaje / 100)
@@ -180,13 +191,13 @@ def crear_prestamo(prestamos, datos_deudor, datos_fiador, monto, porcentaje):
     return prestamo 
 
 def abonar_prestamo(prestamos, cc, abono):
-     prestamo = buscar_prestamo_cc(prestamos, cc, "pendiente") # esta modificado estudiar como funciona
+     prestamo = buscar_prestamo_cc(prestamos, cc, "pendiente") 
 
      if not prestamo:
           raise ValueError("No se encontró un préstamo pendiente para esa cédula.")
      
      if abono > prestamo['saldo_restante']:
-          raise ValueError("Error, no puedes abonar mas del saldo actual.")
+          raise ValueError("No puedes abonar mas del saldo actual.")
      
      #actualizar resultados
      prestamo['abonado'] += abono
@@ -200,7 +211,7 @@ def abonar_prestamo(prestamos, cc, abono):
      
 
 def obtener_saldo(prestamos,cc):
-     prestamo = buscar_prestamo_cc(prestamos, cc) # nuevo por que no se usa estado aqui cuando se llama la funcion
+     prestamo = buscar_prestamo_cc(prestamos, cc) 
 
      if not prestamo:
           raise ValueError("No se encontró ese número de cédula.")
@@ -215,7 +226,7 @@ def buscar_por_nombre(prestamos, nombre):
      resultado = [b for b in prestamos if nombre_buscar in b.get('deudor',{}).get('nombre',"").strip().lower()]
 
      if not resultado:
-          raise ValueError("Error, no se encontraron prestamos con ese nombre.")
+          raise ValueError("No se encontraron prestamos con ese nombre.")
 
      return resultado
 
@@ -258,45 +269,65 @@ def crear_prestamo_logica(prestamos,datos_deudor,datos_fiador,monto,porcentaje):
 
      return prestamo
 
+
 def pedir_datos_prestamo():
-     cedula_buscar = input("Por favor, ingresa el numero de cedula del deudor: ").strip()
-
-     opcion_fiador = input("Deseas ingresar un fiador (Si / No): ").strip().lower()
-
+     while True:
+          cedula_buscar = input("Ingresa el numero de cedula del deudor: ").strip()
+          if not cedula_buscar.isdigit():
+               print("Error: la cedula debe ser numerica.")
+          else:
+               break
      datos_fiador = None
-     if opcion_fiador in ["si", "sí", "s"]:
-          datos_fiador = pedir_datos("fiador")
+     while True:
+          opcion_fiador = input("Deseas ingresar un fiador (Si / No): ").strip().lower()
 
+          if opcion_fiador in ["si", "sí", "s"]:
+               datos_fiador = pedir_datos("fiador")
+               break
+          elif opcion_fiador in ["no", "n"]:
+               break
+          else:
+               print("Error: responde solo 'Si' o 'No'.")
+               
      while True:
           try:
                monto =round(float(input("ingresa el monto del prestamo:")),2)
                if monto > 0 :
                     break
                else: 
-                    print("Error: El monto debe ser mayor a $0")
-          except ValueError:
-               print("Error: ingresa un numero valido.")
+                    raise ValueError("El monto debe ser mayor a $0")
+          except ValueError as e:
+               print(f"Error: {e}")
      
      while True:
           try:
-               porcentaje = int(input("Ingresa el porcentaje de intere (1% - 50%):").strip())
+               porcentaje = int(input("Ingresa el porcentaje de interes (1% - 50%):").strip())
                if 1 <= porcentaje <= 50:
                     break
                else:
-                    print("Error: el porcentaje debe estar entre 1 - 50.")
+                    raise ValueError("El porcentaje debe estar entre 1 - 50.")
 
-          except ValueError:
-               print("Error: ingresa un numero valido")
+          except ValueError as e:
+               print(f"Error: {e}")
 
      return cedula_buscar,datos_fiador,monto,porcentaje
+
+def obtener_o_crear_deudor(prestamos,cc):
+     prestamo_existente = buscar_prestamo_cc(prestamos,cc)
+     
+     if prestamo_existente :
+          return prestamo_existente['deudor']
+     
+     return pedir_datos('deudor')
 
           
   
 #----------Programa principal--------------
 def main():
-    prestamos = cargar_datos()
-    if prestamos is None:
-         print("Corrige el archivo antes de continuar.")
+    try:
+         prestamos = cargar_datos()
+    except ValueError as e:
+         print(f"Error: {e}")
          return
     
     while True:
